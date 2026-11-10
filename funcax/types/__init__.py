@@ -1,1 +1,2 @@
-from .types import Array, ParamTree
+from param_types import ParamTree
+from array_types import Array

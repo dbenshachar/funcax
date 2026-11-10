@@ -3,8 +3,6 @@ import jax.numpy as jnp
 
 from typing import Callable, Any
 
-type Array = jnp.ndarray
-
 class ChildrenParams:
     def __init__(self, params: "ParamTree"):
         self.params = params
