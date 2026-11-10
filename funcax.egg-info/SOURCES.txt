@@ -1,0 +1,12 @@
+pyproject.toml
+funcax/__init__.py
+funcax.egg-info/PKG-INFO
+funcax.egg-info/SOURCES.txt
+funcax.egg-info/dependency_links.txt
+funcax.egg-info/requires.txt
+funcax.egg-info/top_level.txt
+funcax/functional/__init__.py
+funcax/functional/module.py
+funcax/inference/__init__.py
+funcax/nn/__init__.py
+funcax/training/__init__.py

@@ -1,0 +1,6 @@
+Metadata-Version: 2.4
+Name: funcax
+Version: 0.1.0
+Summary: Functional utilities built with JAX.
+Requires-Python: >=3.10
+Requires-Dist: jax
