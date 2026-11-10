@@ -1,5 +1,5 @@
 import jax
-import jax.numpy as jnp
+from .array_types import Array
 
 from typing import Callable, Any
 
