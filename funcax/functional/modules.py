@@ -1,7 +1,7 @@
 import jax
 import jax.numpy as jnp
 
-from activation import sigmoid, tanh
+from funcax.functional.activation import sigmoid, tanh
 from funcax.types import Array, ParamTree
 
 def identity(_: ParamTree, array: Array):

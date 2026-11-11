@@ -28,9 +28,9 @@ def make_identiy():
         
     return apply, init
 
-def make_activation(activation: Callable[[Array], Array]):
-    def apply(_: ParamTree, array: Array):
-        return activation(array)
+def make_activation(activation: Callable[[ParamTree, Array], Array]):
+    def apply(params: ParamTree, array: Array):
+        return activation(params, array)
 
     def init(_: Array):
         return _, ParamTree()
@@ -43,7 +43,7 @@ def make_linear():
 
     def init(key: Array, in_dim: int, out_dim: int):
         params = ParamTree()
-        key, params.W = make_param(key, (out_dim, in_dim))
+        key, params.W = make_param(key, (in_dim, out_dim))
         key, params.b = make_param(key, (out_dim,))
         return key, params
 
