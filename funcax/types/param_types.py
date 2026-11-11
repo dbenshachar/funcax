@@ -1,7 +1,7 @@
 import jax
-from .array_types import Array
+from array_types import Array
 
-from typing import Callable, Any
+from typing import Callable, Iterable
 
 class ChildrenParams:
     def __init__(self, params: "ParamTree"):
@@ -18,16 +18,26 @@ class ChildrenParams:
 
         return child
 
+    def __setattr__(self, name: str, value: "ParamTree") -> None:
+        return setattr(self.params.name, name, value)
+
 class ParamTree(dict):
+    def __init__(self):
+        super().__init__()
+        self.training = True
+
     @property
     def children(self):
         return ChildrenParams(self)
 
-    def __getattr__(self, key: Any) -> Array:
+    def __getattr__(self, key: str) -> Array:
         try:
             return self[key]
         except KeyError:
             raise AttributeError(f"'ParamTree' object has no attribute '{key}'")
+
+    def __setattr__(self, name: str, value: Array) -> None:
+        return super().__setattr__(name, value)
 
     def param(self, name: str, key: jax.Array, init: Callable[[jax.Array], Array]) -> Array:
         if name not in self:

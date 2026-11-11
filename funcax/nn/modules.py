@@ -4,48 +4,102 @@ import jax.numpy as jnp
 from funcax.types import Array, ParamTree
 from funcax.functional import identity, linear, embedding, dropout, convolution, lstm
 
-from typing import Callable
+from typing import Callable, Sequence
+
+type ModuleFn = Callable[
+    [],
+    tuple[
+        Callable[[ParamTree, Array], Array],
+        Callable[[Array], tuple[Array, ParamTree]],
+    ],
+]
+
+def make_param(key: Array, shape: Sequence[int], mean: float | None = None, std: float | None = None):
+    key, k = jax.random.split(key)
+    param = jax.random.normal(k, shape) * (std if std else 1) + (mean if mean else 0)
+    return key, param
 
 def make_identiy():
     def apply(params: ParamTree, array: Array):
         return identity(params, array)
-    return apply
+
+    def init(_: Array):
+        return _, ParamTree()
+        
+    return apply, init
 
 def make_activation(activation: Callable[[Array], Array]):
     def apply(_: ParamTree, array: Array):
         return activation(array)
-    return apply
+
+    def init(_: Array):
+        return _, ParamTree()
+    
+    return apply, init
 
 def make_linear():
     def apply(params: ParamTree, array: Array):
         return linear(params, array)
-    return apply
 
-def make_mlp(hidden: int, dim: int, make_activation: Callable[[], Callable[[ParamTree, Array], Array]]):
-    dense1 = make_linear()
-    activation = make_activation()
-    dense2 = make_linear()
+    def init(key: Array, in_dim: int, out_dim: int):
+        params = ParamTree()
+        key, params.W = make_param(key, (out_dim, in_dim))
+        key, params.b = make_param(key, (out_dim,))
+        return key, params
+
+    return apply, init
+
+def make_mlp(make_activation: ModuleFn):
+    dense1_apply, dense1_init = make_linear()
+    dense2_apply, dense2_init = make_linear()
+    activation_apply, activation_init = make_activation()
+
     def apply(params: ParamTree, array: Array):
-        out = dense1(params.children.dense1, array)
-        out = activation(params.children.activation, out)
-        out = dense2(params.children.dense2, out)
+        out = dense1_apply(params.children.dense1, array)
+        out = activation_apply(params.children.activation, out)
+        out = dense2_apply(params.children.dense2, out)
         return out
-    return apply
+
+    def init(key: Array, in_dim: int, hidden_dim: int, out_dim: int):
+        params = ParamTree()
+        key, params.children.dense1 = dense1_init(key, in_dim, hidden_dim)
+        key, params.children.activation = activation_init(key)
+        key, params.children.dense2 = dense2_init(key, hidden_dim, out_dim)
+        return key, params
+
+    return apply, init
 
 def make_dropout(drop: float = 0.1):
     def apply(params: ParamTree, array: Array):
         return dropout(params, array, drop=drop)
-    return apply
+    
+    def init(_: Array):
+        return _, ParamTree()
+
+    return apply, init
 
 def make_embedding():
     def apply(params: ParamTree, array: Array):
         return embedding(params, array)
-    return apply
+
+    def init(key: Array, num_embeddings: int, embedding_dim: int):
+        params = ParamTree()
+        key, params.E = make_param(key, (num_embeddings, embedding_dim))
+        return key, params
+
+    return apply, init
 
 def make_convolution():
     def apply(params: ParamTree, array: Array):
         return convolution(params, array)
-    return apply
+
+    def init(key: Array, in_channels: int, out_channels: int, kernel_shape: Sequence[int]):
+        params = ParamTree()
+        key, params.W = make_param(key, (out_channels, in_channels, *kernel_shape))
+        key, params.b = make_param(key, (out_channels,))
+        return key, params
+
+    return apply, init
 
 def make_lstm(layers: int):
     def apply(params: ParamTree, array: Array):
@@ -68,4 +122,34 @@ def make_lstm(layers: int):
 
         _, out = jax.lax.scan(step, (hidden, state), array)
         return out
-    return apply
+
+    def init(key: Array, in_dim: int, hidden_dim: int):
+        params = ParamTree()
+
+        for layer in range(layers):
+            layer_params = ParamTree()
+            layer_in_dim = in_dim if layer == 0 else hidden_dim
+            stacked_dim = layer_in_dim + hidden_dim
+
+            key, layer_params.W_f = make_param(key, (hidden_dim, stacked_dim))
+            key, layer_params.b_f = make_param(key, (hidden_dim,))
+
+            key, layer_params.W_i = make_param(key, (hidden_dim, stacked_dim))
+            key, layer_params.b_i = make_param(key, (hidden_dim,))
+
+            key, layer_params.W_c = make_param(key, (hidden_dim, stacked_dim))
+            key, layer_params.b_c = make_param(key, (hidden_dim,))
+
+            key, layer_params.W_o = make_param(key, (hidden_dim, stacked_dim))
+            key, layer_params.b_o = make_param(key, (hidden_dim,))
+
+            layer_params["forget_sigmoid"] = ParamTree()
+            layer_params["input_gate"] = ParamTree()
+            layer_params["state_tanh"] = ParamTree()
+            layer_params["output_sigmoid"] = ParamTree()
+
+            params[f"lstm_{layer}"] = layer_params
+
+        return key, params
+
+    return apply, init
