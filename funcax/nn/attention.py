@@ -1,7 +1,7 @@
 import jax.numpy as jnp
 
 from funcax.functional import attn
-from funcax.nn.modules import make_linear, make_mlp, make_activation, ModuleFn
+from funcax.nn.modules import make_linear, make_mlp, make_activation, make_layer_norm, ModuleFn
 from funcax.functional.norm import layer_norm
 
 from funcax.types import Array, ParamTree
@@ -20,7 +20,7 @@ def make_attn():
 def make_self_attention(activation_factory: ModuleFn):
     linear_apply, linear_init = make_linear()
     mlp_apply, mlp_init = make_mlp(activation_factory)
-    norm_apply, norm_init = make_activation(layer_norm)
+    norm_apply, norm_init = make_layer_norm()
     attn_apply, attn_init = make_attn()
 
     def apply(params: ParamTree, array: Array):
@@ -37,7 +37,7 @@ def make_self_attention(activation_factory: ModuleFn):
         key, params.children.linear = linear_init(key, in_dim, hidden_dim * 3)
         key, params.children.mlp = mlp_init(key, hidden_dim, hidden_dim * hidden_scale, hidden_dim)
         
-        key, params.children.norm = norm_init(key)
+        key, params.children.norm = norm_init(key, hidden_dim * 3)
         key, params.children.attn = attn_init(key)
 
         return key, params
@@ -48,7 +48,7 @@ def make_cross_attention(activation_factory: ModuleFn):
     q_linear_apply, q_linear_init = make_linear()
     kv_linear_apply, kv_linear_init = make_linear()
     mlp_apply, mlp_init = make_mlp(activation_factory)
-    norm_apply, norm_init = make_activation(layer_norm)
+    norm_apply, norm_init = make_layer_norm()
     attn_apply, attn_init = make_attn()
 
     def apply(params: ParamTree, q: Array, kv: Array):
@@ -67,7 +67,7 @@ def make_cross_attention(activation_factory: ModuleFn):
         key, params.children.kv_linear = kv_linear_init(key, in_dim, hidden_dim * 2)
         key, params.children.mlp = mlp_init(key, hidden_dim, hidden_dim * hidden_scale, hidden_dim)
         
-        key, params.children.norm = norm_init(key)
+        key, params.children.norm = norm_init(key, hidden_dim)
         key, params.children.attn = attn_init(key)
 
         return key, params

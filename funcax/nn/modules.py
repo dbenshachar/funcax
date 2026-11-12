@@ -2,7 +2,7 @@ import jax
 import jax.numpy as jnp
 
 from funcax.types import Array, ParamTree, make_param
-from funcax.functional import identity, linear, dropout, convolution, lstm
+from funcax.functional import identity, linear, dropout, convolution, lstm, layer_norm
 
 from typing import Callable, Sequence
 
@@ -134,6 +134,18 @@ def make_lstm(layers: int):
 
             params[f"lstm_{layer}"] = layer_params
 
+        return key, params
+
+    return apply, init
+
+def make_layer_norm():
+    def apply(params: ParamTree, array: Array):
+        return layer_norm(params, array)
+
+    def init(key: Array, dim: int):
+        params = ParamTree()
+        params.gamma = jnp.ones((dim,))
+        params.beta = jnp.zeros((dim,))
         return key, params
 
     return apply, init

@@ -62,6 +62,8 @@ class ParamTree(dict):
         return self[name]
 
 def make_param(key: Array, shape: Sequence[int], mean: float | None = None, std: float | None = None):
+    scale = 1.0 if std is None else std
+    location = 0.0 if mean is None else mean
     key, k = jax.random.split(key)
-    param = jax.random.normal(k, shape) * (std if std else 1) + (mean if mean else 0)
+    param = jax.random.normal(k, shape) * scale + location
     return key, param
