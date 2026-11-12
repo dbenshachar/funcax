@@ -37,7 +37,7 @@ def make_self_attention(
     attn_apply, attn_init = make_attn()
 
     hidden_dim = in_dim * attn_heads
-    head_dim = in_dim
+    head_dim = hidden_dim // attn_heads
 
     def apply(params: ParamTree, array: Array):
         out = linear_apply(params.children.linear, array)
