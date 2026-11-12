@@ -1,8 +1,8 @@
 import jax
 import jax.numpy as jnp
 
-from funcax.types import Array, ParamTree
-from funcax.functional import identity, linear, embedding, dropout, convolution, lstm
+from funcax.types import Array, ParamTree, make_param
+from funcax.functional import identity, linear, dropout, convolution, lstm
 
 from typing import Callable, Sequence
 
@@ -14,12 +14,7 @@ type ModuleFn = Callable[
     ],
 ]
 
-def make_param(key: Array, shape: Sequence[int], mean: float | None = None, std: float | None = None):
-    key, k = jax.random.split(key)
-    param = jax.random.normal(k, shape) * (std if std else 1) + (mean if mean else 0)
-    return key, param
-
-def make_identiy():
+def make_identity():
     def apply(params: ParamTree, array: Array):
         return identity(params, array)
 
@@ -49,10 +44,10 @@ def make_linear():
 
     return apply, init
 
-def make_mlp(make_activation: ModuleFn):
+def make_mlp(activation_factory: ModuleFn):
     dense1_apply, dense1_init = make_linear()
     dense2_apply, dense2_init = make_linear()
-    activation_apply, activation_init = make_activation()
+    activation_apply, activation_init = activation_factory()
 
     def apply(params: ParamTree, array: Array):
         out = dense1_apply(params.children.dense1, array)
@@ -75,17 +70,6 @@ def make_dropout(drop: float = 0.1):
     
     def init(_: Array):
         return _, ParamTree()
-
-    return apply, init
-
-def make_embedding():
-    def apply(params: ParamTree, array: Array):
-        return embedding(params, array)
-
-    def init(key: Array, num_embeddings: int, embedding_dim: int):
-        params = ParamTree()
-        key, params.E = make_param(key, (num_embeddings, embedding_dim))
-        return key, params
 
     return apply, init
 

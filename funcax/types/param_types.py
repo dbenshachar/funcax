@@ -1,7 +1,7 @@
 import jax
 from funcax.types.array_types import Array
 
-from typing import Callable, Iterable
+from typing import Callable, Sequence
 
 class ChildrenParams:
     def __init__(self, params: "ParamTree"):
@@ -60,3 +60,8 @@ class ParamTree(dict):
         if name not in self:
             self[name] = init(key)
         return self[name]
+
+def make_param(key: Array, shape: Sequence[int], mean: float | None = None, std: float | None = None):
+    key, k = jax.random.split(key)
+    param = jax.random.normal(k, shape) * (std if std else 1) + (mean if mean else 0)
+    return key, param

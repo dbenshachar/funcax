@@ -33,9 +33,6 @@ def convolution(params: ParamTree, array: Array):
     )
     return out.squeeze(axis=0) + params.b.reshape((-1,) + (1,) * n)
 
-def embedding(params: ParamTree, array: Array):
-    return jnp.take(params.E, array, axis=0)
-
 def dropout(params: ParamTree, array: Array, drop: float = 0.1):
     if not params.training or drop == 0.0:
         return array
