@@ -31,9 +31,9 @@ def make_self_attention(
         hidden_dim: int,
         hidden_scale: int
     ):
-    linear_apply, linear_init = make_linear()
-    mlp_apply, mlp_init = make_mlp(activation_factory)
-    norm_apply, norm_init = make_layer_norm()
+    linear_apply, linear_init = make_linear(in_dim, hidden_dim * 3)
+    mlp_apply, mlp_init = make_mlp(activation_factory, hidden_dim, hidden_dim * hidden_scale, in_dim)
+    norm_apply, norm_init = make_layer_norm(hidden_dim * 3)
     attn_apply, attn_init = make_attn()
 
     hidden_dim = in_dim * attn_heads
@@ -52,10 +52,10 @@ def make_self_attention(
 
     def init(key: Array):
         params = ParamTree()
-        key, params.children.linear = linear_init(key, in_dim, hidden_dim * 3)
-        key, params.children.mlp = mlp_init(key, hidden_dim, hidden_dim * hidden_scale, in_dim)
+        key, params.children.linear = linear_init(key)
+        key, params.children.mlp = mlp_init(key)
         
-        key, params.children.norm = norm_init(key, hidden_dim * 3)
+        key, params.children.norm = norm_init(key)
         key, params.children.attn = attn_init(key)
 
         return key, params
