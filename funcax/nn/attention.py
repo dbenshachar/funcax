@@ -36,7 +36,6 @@ def make_self_attention(
     norm_apply, norm_init = make_layer_norm(hidden_dim * 3)
     attn_apply, attn_init = make_attn()
 
-    hidden_dim = in_dim * attn_heads
     head_dim = hidden_dim // attn_heads
 
     def apply(params: ParamTree, array: Array):
