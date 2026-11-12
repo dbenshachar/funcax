@@ -32,11 +32,11 @@ def make_activation(activation: Callable[[ParamTree, Array], Array]):
     
     return apply, init
 
-def make_linear():
+def make_linear(in_dim: int, out_dim: int):
     def apply(params: ParamTree, array: Array):
         return linear(params, array)
 
-    def init(key: Array, in_dim: int, out_dim: int):
+    def init(key: Array):
         params = ParamTree()
         key, params.W = make_param(key, (in_dim, out_dim))
         key, params.b = make_param(key, (out_dim,))
@@ -44,9 +44,9 @@ def make_linear():
 
     return apply, init
 
-def make_mlp(activation_factory: ModuleFn):
-    dense1_apply, dense1_init = make_linear()
-    dense2_apply, dense2_init = make_linear()
+def make_mlp(activation_factory: ModuleFn, in_dim: int, hidden_dim: int, out_dim: int):
+    dense1_apply, dense1_init = make_linear(in_dim, hidden_dim)
+    dense2_apply, dense2_init = make_linear(hidden_dim, out_dim)
     activation_apply, activation_init = activation_factory()
 
     def apply(params: ParamTree, array: Array):
@@ -55,11 +55,11 @@ def make_mlp(activation_factory: ModuleFn):
         out = dense2_apply(params.children.dense2, out)
         return out
 
-    def init(key: Array, in_dim: int, hidden_dim: int, out_dim: int):
+    def init(key: Array):
         params = ParamTree()
-        key, params.children.dense1 = dense1_init(key, in_dim, hidden_dim)
+        key, params.children.dense1 = dense1_init(key)
         key, params.children.activation = activation_init(key)
-        key, params.children.dense2 = dense2_init(key, hidden_dim, out_dim)
+        key, params.children.dense2 = dense2_init(key)
         return key, params
 
     return apply, init
@@ -73,11 +73,11 @@ def make_dropout(drop: float = 0.1):
 
     return apply, init
 
-def make_convolution():
+def make_convolution(in_channels: int, out_channels: int, kernel_shape: Sequence[int]):
     def apply(params: ParamTree, array: Array):
         return convolution(params, array)
 
-    def init(key: Array, in_channels: int, out_channels: int, kernel_shape: Sequence[int]):
+    def init(key: Array):
         params = ParamTree()
         key, params.W = make_param(key, (out_channels, in_channels, *kernel_shape))
         key, params.b = make_param(key, (out_channels,))
@@ -85,7 +85,7 @@ def make_convolution():
 
     return apply, init
 
-def make_lstm(layers: int):
+def make_lstm(layers: int, in_dim: int, hidden_dim: int):
     def apply(params: ParamTree, array: Array):
         def step(memory: tuple[jnp.ndarray, jnp.ndarray], array: jnp.ndarray):
             hidden, state = memory
@@ -107,7 +107,7 @@ def make_lstm(layers: int):
         _, out = jax.lax.scan(step, (hidden, state), array)
         return out
 
-    def init(key: Array, in_dim: int, hidden_dim: int):
+    def init(key: Array):
         params = ParamTree()
 
         for layer in range(layers):
@@ -138,11 +138,11 @@ def make_lstm(layers: int):
 
     return apply, init
 
-def make_layer_norm():
+def make_layer_norm(dim: int):
     def apply(params: ParamTree, array: Array):
         return layer_norm(params, array)
 
-    def init(key: Array, dim: int):
+    def init(key: Array):
         params = ParamTree()
         params.gamma = jnp.ones((dim,))
         params.beta = jnp.zeros((dim,))

@@ -1,4 +1,5 @@
 import jax
+import jax.numpy as jnp
 from funcax.types.array_types import Array
 
 from typing import Callable, Sequence
@@ -61,9 +62,8 @@ class ParamTree(dict):
             self[name] = init(key)
         return self[name]
 
-def make_param(key: Array, shape: Sequence[int], mean: float | None = None, std: float | None = None):
-    scale = 1.0 if std is None else std
-    location = 0.0 if mean is None else mean
+def make_param(key: Array, shape: Sequence[int], std: float | None = None):
     key, k = jax.random.split(key)
-    param = jax.random.normal(k, shape) * scale + location
+    scale = 1.0 / jnp.sqrt(shape[0]) if std is None else std
+    param = jax.random.normal(k, shape) * scale
     return key, param
